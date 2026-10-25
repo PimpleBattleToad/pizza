@@ -4,7 +4,10 @@ const vm = require('vm');
 const path = require('path');
 
 const html = fs.readFileSync(path.join(__dirname, 'pizza.html'), 'utf8');
-const script = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+// В странице несколько скриптов (в <head> — перехват приглашения к установке),
+// берём главный: тот, где объявлены поля калькулятора.
+const parts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+const script = parts.find(s => s.includes('/*CALC-START*/')) || parts[0];
 
 let fails = 0;
 function ok(name, cond, extra) {
@@ -256,5 +259,24 @@ ok('строка «Брожение» помечена как val, а не num',
   /class="val"><b>' \+ fermentText/.test(html));
 ok('на узком экране план становится списком', /@media \(max-width:620px\)/.test(html) && /\.tbl\.plan\{display:block\}/.test(html));
 
+/* ---------- установка на экран ---------- */
+console.log('\n-- установка --');
+ok('в шапке есть кнопка установки', /id="installBtn"/.test(html));
+ok('есть блок с инструкцией', /id="installHint"/.test(html));
+ok('приглашение к установке ловим в <head>', /beforeinstallprompt/.test(html) && /__installEvent/.test(html));
+ok('событие appinstalled тоже', /appinstalled/.test(html) && /__installDone/.test(html));
+ok('функция installSetup объявлена', /function installSetup\(\)/.test(script));
+ok('installSetup вызывается на старте', /installSetup\(\)\s*;/.test(script));
+ok('режим приложения распознаётся', /display-mode: standalone/.test(script) && /navigator\.standalone/.test(script));
+ok('инструкция для iPhone', /На экран „Домой“/.test(script));
+ok('инструкция для встроенного браузера', /Открыть в Safari|Открыть в Chrome/.test(script));
+ok('на печати инструкция скрыта', /\.install[,{]/.test(printBlock) && /display:none/.test(printBlock));
+ok('кнопка показана в обычном браузере',
+  getEl('installBtn').hidden === false && getEl('installBtn').textContent === 'Установить',
+  getEl('installBtn').textContent);
+ok('инструкция по умолчанию скрыта', /id="installHint"[^>]*hidden/.test(html),
+  'в разметке стоит атрибут hidden');
+
+/* ---------- итог ---------- */
 console.log(fails === 0 ? '\nВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' : `\nПРОВАЛЕНО ПРОВЕРОК: ${fails}`);
 process.exit(fails === 0 ? 0 : 1);

@@ -15,6 +15,22 @@
 <meta name="apple-mobile-web-app-title" content="Пицца">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
+<script>
+/* Ловим приглашение к установке как можно раньше: Chrome присылает его до того,
+   как основной скрипт внизу страницы успеет навесить обработчик. */
+window.__installEvent = null;
+window.__installDone = false;
+window.addEventListener('beforeinstallprompt', function(e){
+  e.preventDefault();
+  window.__installEvent = e;
+  try { window.dispatchEvent(new Event('install-ready')); } catch (err) {}
+});
+window.addEventListener('appinstalled', function(){
+  window.__installEvent = null;
+  window.__installDone = true;
+  try { window.dispatchEvent(new Event('install-done')); } catch (err) {}
+});
+</script>
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <style>
 :root{
@@ -48,6 +64,22 @@ h1{margin:0;font-size:21px;line-height:1.2;letter-spacing:.2px}
 }
 .btn:hover{border-color:var(--accent);color:var(--accent)}
 .btn:active{transform:translateY(1px)}
+.btn.accent{background:var(--accent);border-color:var(--accent);color:#1b1206;font-weight:600}
+.btn.accent:hover{color:#1b1206;filter:brightness(1.06)}
+
+/* ---------- подсказка про установку ---------- */
+.install{
+  margin:0 0 14px;padding:12px 14px;background:var(--panel2);border:1px solid var(--line);
+  border-radius:12px;font-size:14px;line-height:1.5;color:var(--ink);
+}
+.install b{color:var(--accent)}
+.install ol{margin:7px 0 0;padding-left:20px}
+.install li{margin:3px 0}
+.install .x{
+  float:right;margin:-4px -4px 0 10px;background:transparent;border:0;color:var(--dim);
+  font-size:20px;line-height:1;cursor:pointer;padding:0 2px;
+}
+.install .x:hover{color:var(--accent)}
 
 /* ---------- пресеты ---------- */
 .presets{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
@@ -178,7 +210,7 @@ html.tg body{padding-top:8px}
 @media print{
   :root{--bg:#fff;--panel:#fff;--panel2:#f6f3f0;--line:#c9c2bc;--ink:#111;--dim:#4a4a4a;--accent:#8a4b00}
   body{background:#fff;color:#111;padding:0;font-size:11.5pt}
-  .presets,.actions,#stickyBar,#diag,.hint,section.input,footer.foot{display:none!important}
+  .presets,.actions,#stickyBar,#diag,.hint,.install,section.input,footer.foot{display:none!important}
   .grid{display:block}
   .panel{border:0;padding:0;margin-bottom:12pt}
   .big{font-size:26pt}
@@ -222,10 +254,13 @@ html.tg body{padding-top:8px}
       </div>
     </div>
     <div class="actions">
+      <button id="installBtn" class="btn accent" type="button" hidden>Установить</button>
       <button id="copyBtn" class="btn" type="button">Скопировать рецепт</button>
       <button id="printBtn" class="btn" type="button">Печать / PDF</button>
     </div>
   </header>
+
+  <div id="installHint" class="install" hidden></div>
 
   <div id="presets" class="presets"></div>
 
@@ -1266,6 +1301,95 @@ function bind(){
   }
 }
 
+/* ==================== УСТАНОВКА НА ЭКРАН ==================== */
+function standaloneMode(){
+  try {
+    if (window.matchMedia){
+      if (window.matchMedia('(display-mode: standalone)').matches) return true;
+      if (window.matchMedia('(display-mode: fullscreen)').matches) return true;
+      if (window.matchMedia('(display-mode: minimal-ui)').matches) return true;
+    }
+    if (navigator.standalone === true) return true;   /* iOS */
+  } catch (e) {}
+  return false;
+}
+
+function installSetup(){
+  var btn = el('installBtn'), box = el('installHint');
+  if (!btn || !box) return;
+
+  var ua = (typeof navigator !== 'undefined' && navigator.userAgent) || '';
+  var isIos = /iPad|iPhone|iPod/.test(ua) ||
+    (/Macintosh/.test(ua) && (navigator.maxTouchPoints || 0) > 1);
+  var isInApp = /Telegram|VKWebApp|Instagram|FBAN|FBAV|OKApp|Line\//i.test(ua);
+
+  function show(text){ btn.textContent = text; btn.hidden = false; }
+  function hideAll(){ btn.hidden = true; box.hidden = true; }
+
+  function steps(title, items){
+    var h = '<button class="x" type="button" aria-label="Закрыть">&times;</button><b>' + title + '</b><ol>';
+    for (var i = 0; i < items.length; i++) h += '<li>' + items[i] + '</li>';
+    box.innerHTML = h + '</ol>';
+    box.hidden = false;
+    var x = box.querySelector ? box.querySelector('.x') : null;
+    if (x && x.addEventListener) x.addEventListener('click', function(){ box.hidden = true; });
+  }
+
+  function refresh(){
+    /* Кнопка видна всегда, пока приложение не запущено как приложение:
+       в Chrome она откроет системное окно установки, в остальных случаях
+       покажет инструкцию под свой браузер. Прятать её «до приглашения»
+       нельзя — тогда в браузерах без beforeinstallprompt установить нечем. */
+    if (standaloneMode() || window.__installDone){ hideAll(); return; }
+    show(isInApp ? 'Как установить' : 'Установить');
+  }
+
+  if (btn.addEventListener){
+    btn.addEventListener('click', function(){
+      var ev = window.__installEvent;
+      if (ev && ev.prompt){
+        window.__installEvent = null;
+        ev.prompt();
+        if (ev.userChoice && ev.userChoice.then){
+          ev.userChoice.then(function(c){
+            if (c && c.outcome === 'accepted') hideAll(); else refresh();
+          }, function(){ refresh(); });
+        } else {
+          hideAll();
+        }
+        return;
+      }
+      if (isInApp){
+        steps('Сначала откройте страницу в браузере', [
+          'Нажмите «⋯» или «Поделиться» в углу этого окна.',
+          'Выберите «Открыть в Safari» на iPhone или «Открыть в Chrome» на Android.',
+          'В браузере установите приложение: на iPhone — «Поделиться» → «На экран „Домой“», на Android — меню ⋮ → «Установить приложение».'
+        ]);
+        return;
+      }
+      if (isIos){
+        steps('Установка на iPhone и iPad', [
+          'Нажмите «Поделиться» внизу Safari — квадрат со стрелкой вверх.',
+          'Прокрутите список и выберите «На экран „Домой“».',
+          'Нажмите «Добавить» — иконка появится на рабочем столе.'
+        ]);
+        return;
+      }
+      steps('Установка в браузере', [
+        'Откройте меню браузера: ⋮ в Chrome, ⋯ в Edge, меню в Firefox.',
+        'Выберите «Установить приложение» или «Установить Pizza».',
+        'Если пункта нет — приложение уже установлено или браузер не поддерживает установку.'
+      ]);
+    });
+  }
+
+  if (window.addEventListener){
+    window.addEventListener('install-ready', refresh);
+    window.addEventListener('install-done', hideAll);
+  }
+  refresh();
+}
+
 /* ==================== СТАРТ ==================== */
 var BUILD = 'v1';
 
@@ -1284,6 +1408,7 @@ var BUILD = 'v1';
   bind();
   render();
   fitZoom();
+  installSetup();
 
   /* Telegram Mini App */
   var tg = (window.Telegram && window.Telegram.WebApp) || null;

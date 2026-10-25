@@ -6,9 +6,11 @@ const path = require('path');
 const file = path.join(__dirname, 'pizza.html');
 const html = fs.readFileSync(file, 'utf8');
 
-const scriptMatch = html.match(/<script>([\s\S]*?)<\/script>/);
-if (!scriptMatch) { console.error('FAIL: <script> не найден'); process.exit(1); }
-const fullScript = scriptMatch[1];
+// Скриптов в странице несколько (в <head> ловим приглашение к установке),
+// поэтому берём тот, в котором лежит расчётное ядро, а не первый попавшийся.
+const parts = [...html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+const fullScript = parts.find(s => s.includes('/*CALC-START*/')) || parts[0] || '';
+if (!fullScript) { console.error('FAIL: <script> не найден'); process.exit(1); }
 
 // 1. Синтаксис всего скрипта
 try { new vm.Script(fullScript, { filename: 'pizza-inline.js' }); }

@@ -3,9 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Калькулятор неаполитанской пиццы</title>
+<title>Неаполитанская пицца — калькулятор теста</title>
+<meta name="description" content="Калькулятор теста для неаполитанской пиццы: граммы на нужное число пицц, дрожжи под ваш график брожения, температура воды и план до выпечки.">
 <meta name="theme-color" content="#141110">
-<link rel="manifest" href="manifest.json">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Пицца">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
 <meta http-equiv="refresh" content="0; url=./pizza.html">
 <style>
   html,body{height:100%;margin:0;background:#141110;color:#f3ece6;
@@ -18,6 +27,16 @@
 <div class="c">
   <p>Открываю калькулятор…<br><a href="./pizza.html">Неаполитанская пицца — калькулятор теста</a></p>
 </div>
-<script>location.replace('./pizza.html');</script>
+<script>
+location.replace('./pizza.html');
+/* Регистрируем офлайн-кэш и здесь: если приложение установили с адреса /pizza/,
+   первый запуск может начаться именно с этой страницы. */
+try {
+  if ((location.protocol === 'https:' || location.hostname === 'localhost' ||
+       location.hostname === '127.0.0.1') && 'serviceWorker' in navigator){
+    navigator.serviceWorker.register('./sw.js');
+  }
+} catch (e) {}
+</script>
 </body>
 </html>

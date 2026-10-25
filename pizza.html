@@ -60,7 +60,11 @@ h1{margin:0;font-size:21px;line-height:1.2;letter-spacing:.2px}
 
 /* ---------- сетка ---------- */
 .grid{display:grid;grid-template-columns:minmax(300px,392px) minmax(0,1fr);gap:16px;align-items:start}
-.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+/* панель — элемент сетки, и без min-width:0 её минимальная ширина равна
+   ширине самого широкого содержимого: одна длинная ячейка таблицы раздувала
+   всю колонку и страница вылезала за экран */
+.grid > *{min-width:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px;min-width:0}
 .panel + .panel{margin-top:0}
 h2{margin:18px 0 10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:600}
 h2:first-child{margin-top:0}
@@ -101,6 +105,9 @@ input:disabled{opacity:.55;cursor:not-allowed}
 .tbl th{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:600;text-align:left;padding:0 6px 6px}
 .tbl td{border-top:1px solid var(--line);padding:8px 6px;vertical-align:top}
 .tbl td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+/* значение-фраза («48 ч при 4 °C + 4 ч согрева») должно переноситься,
+   иначе таблица тянет за собой всю колонку и вылезает за экран телефона */
+.tbl td.val{text-align:right;white-space:normal;font-variant-numeric:tabular-nums}
 .tbl td.nw,.tbl th.nw{white-space:nowrap}
 .tbl td.note,th.note{white-space:normal;font-size:12.5px;color:var(--dim);line-height:1.35}
 .tbl tr.total td{border-top:2px solid var(--line);font-weight:700}
@@ -108,6 +115,22 @@ input:disabled{opacity:.55;cursor:not-allowed}
 .tbl.plan td.d{width:104px;text-align:right;white-space:nowrap;color:var(--dim);font-size:13px}
 .tbl.plan td b{display:block}
 .day{display:block;font-size:10.5px;color:var(--warn);letter-spacing:.04em}
+/* На узком экране таблица плана превращается в список шагов: время и
+   длительность в первой строке, описание — во второй, во всю ширину. */
+@media (max-width:620px){
+  .tbl.plan{display:block}
+  .tbl.plan thead{display:none}
+  .tbl.plan tbody{display:block}
+  .tbl.plan tr{display:grid;grid-template-columns:auto 1fr auto;align-items:baseline;
+    gap:2px 8px;padding:10px 0;border-top:1px solid var(--line)}
+  .tbl.plan td{display:block;border:0;padding:0;width:auto}
+  .tbl.plan td.t{grid-column:1;grid-row:1;width:auto;font-weight:600}
+  .tbl.plan td.t .day{display:inline;margin-left:5px}
+  .tbl.plan td.d{grid-column:3;grid-row:1;width:auto;text-align:right}
+  .tbl.plan td:nth-child(2){grid-column:1/-1;grid-row:2;padding-top:2px}
+  .tbl.plan td b{display:inline}
+  .tbl.plan td .hint{margin-top:3px}
+}
 #recipeTables,#waterBox,#bakeBox,#plan{overflow-x:auto}
 .wrapTable{margin:0 0 6px}
 .box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
@@ -963,7 +986,7 @@ function renderRecipeTables(s, r, o){
        '<td class="num"><b>' + pct2(o.pYeast) + '</b></td><td class="note">' +
        (o.autoYeast ? 'подобраны под ваш график' : 'заданы вручную') + '</td></tr>';
   h += '<tr><td>Вес шара</td><td class="num"><b>' + g(o.ballWeight) + ' г</b></td><td class="note">≈ ⌀ ' + o.ballDiameter + ' см</td></tr>';
-  h += '<tr><td>Брожение</td><td class="num"><b>' + fermentText + '</b></td><td class="note">' +
+  h += '<tr><td>Брожение</td><td class="val"><b>' + fermentText + '</b></td><td class="note">' +
        'пунтата ' + dur(r.bulkHours * 60) + '</td></tr>';
   h += '</tbody></table></div>';
 

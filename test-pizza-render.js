@@ -246,5 +246,15 @@ ok('на печати остаётся только рецепт', /section\.inp
 ok('на печати светлая тема', /--bg:#fff/.test(printBlock));
 ok('в Telegram одна колонка', /html\.tg \.grid\{grid-template-columns:1fr\}/.test(html));
 
+/* Регрессия: в режиме «холодильник» таблица «Контроль» тянула колонку на 456 px
+   и страница вылезала за экран телефона. Держим три вещи, которые это лечат. */
+console.log('\n-- ширина на телефоне --');
+ok('панели не раздуваются содержимым', /\.grid > \*\{min-width:0\}/.test(html));
+ok('панель тоже с min-width:0', /\.panel\{[^}]*min-width:0/.test(html));
+ok('фраза в таблице переносится', /\.tbl td\.val\{[^}]*white-space:normal/.test(html));
+ok('строка «Брожение» помечена как val, а не num',
+  /class="val"><b>' \+ fermentText/.test(html));
+ok('на узком экране план становится списком', /@media \(max-width:620px\)/.test(html) && /\.tbl\.plan\{display:block\}/.test(html));
+
 console.log(fails === 0 ? '\nВСЕ ПРОВЕРКИ ПРОЙДЕНЫ' : `\nПРОВАЛЕНО ПРОВЕРОК: ${fails}`);
 process.exit(fails === 0 ? 0 : 1);

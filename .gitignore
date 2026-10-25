@@ -1,0 +1,10 @@
+# Готовые архивы и служебные папки
+pizza-site.zip
+_pages/
+
+# Мусор Windows
+Thumbs.db
+desktop.ini
+
+# Скриншоты для проверки вёрстки
+_shots/

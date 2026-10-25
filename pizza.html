@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#141110">
+<meta name="description" content="Калькулятор теста для неаполитанской пиццы: целые граммы на нужное число пицц, дрожжи под ваш график брожения, температура воды и пошаговый план до выпечки.">
+<title>Неаполитанская пицца — калькулятор теста</title>
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="./icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="./icons/icon-512.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Пицца">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="format-detection" content="telephone=no">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg:#141110; --panel:#1e1a18; --panel2:#262120; --line:#3a3230;
+  --ink:#f3ece6; --dim:#b6a89f; --accent:#e8a33d; --accent2:#8fbf6a; --warn:#e8734d;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{overflow-x:hidden}
+body{
+  margin:0;
+  background:radial-gradient(900px 480px at 50% -8%, #2b211b 0%, rgba(20,17,16,0) 62%) no-repeat, var(--bg);
+  color:var(--ink);
+  font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  -webkit-text-size-adjust:100%;
+  padding:16px 12px calc(92px + env(safe-area-inset-bottom));
+}
+.wrap{max-width:1180px;margin:0 auto}
+
+/* ---------- шапка ---------- */
+.top{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;justify-content:space-between;margin-bottom:14px}
+.brand{display:flex;gap:12px;align-items:center;min-width:0}
+.logo{width:52px;height:52px;flex:0 0 auto;border-radius:14px;background:var(--panel2);border:1px solid var(--line);display:grid;place-items:center}
+.logo svg{width:34px;height:34px;display:block}
+h1{margin:0;font-size:21px;line-height:1.2;letter-spacing:.2px}
+.sub{margin:3px 0 0;font-size:13px;color:var(--dim);max-width:56ch}
+.actions{display:flex;gap:8px;flex-wrap:wrap}
+.btn{
+  font:inherit;font-size:14px;color:var(--ink);background:var(--panel2);
+  border:1px solid var(--line);border-radius:10px;padding:9px 14px;cursor:pointer;
+}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn:active{transform:translateY(1px)}
+
+/* ---------- пресеты ---------- */
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.presets button{
+  font:inherit;font-size:13.5px;color:var(--dim);background:transparent;
+  border:1px dashed var(--line);border-radius:999px;padding:7px 13px;cursor:pointer;
+}
+.presets button:hover{color:var(--accent);border-color:var(--accent)}
+.presets button[aria-pressed=true]{color:var(--bg);background:var(--accent);border-color:var(--accent);border-style:solid}
+
+/* ---------- сетка ---------- */
+.grid{display:grid;grid-template-columns:minmax(300px,392px) minmax(0,1fr);gap:16px;align-items:start}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.panel + .panel{margin-top:0}
+h2{margin:18px 0 10px;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--dim);font-weight:600}
+h2:first-child{margin-top:0}
+
+/* ---------- поля ---------- */
+.row{display:grid;grid-template-columns:minmax(0,1fr) 118px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid rgba(58,50,48,.55)}
+.row:first-of-type{border-top:0}
+.row > label{font-size:14.5px;line-height:1.35;min-width:0}
+.hint{display:block;font-size:12px;color:var(--dim);margin-top:2px}
+.row.wide{grid-template-columns:1fr;gap:7px;padding-bottom:9px}
+.row.wide > label{margin-bottom:0}
+input,select{
+  font:inherit;font-size:16px;color:var(--ink);background:var(--panel2);
+  border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;min-width:0;
+}
+input[type=number]{text-align:right;font-variant-numeric:tabular-nums}
+input[type=time]{text-align:center;padding:8px 4px}
+input[type=checkbox]{width:24px;height:24px;justify-self:end;accent-color:var(--accent);cursor:pointer}
+select{cursor:pointer;padding-right:6px}
+input:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+input:disabled{opacity:.55;cursor:not-allowed}
+
+/* ---------- вывод ---------- */
+.alerts{margin:0 0 12px}
+.alerts p{margin:0 0 6px;font-size:13.5px;line-height:1.45;padding:8px 11px;border-radius:10px;border:1px solid var(--line);background:var(--panel2)}
+.alerts p.ok{border-color:rgba(143,191,106,.45);color:#cfe6b9}
+.alerts p.warn{border-color:rgba(232,115,77,.5);color:#f3c3b1}
+.alerts p.err{border-color:var(--warn);color:#ffd6c8;background:rgba(232,115,77,.14)}
+.big{font-size:34px;font-weight:700;line-height:1.1;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+.big small{display:block;font-size:13.5px;font-weight:400;letter-spacing:0;color:var(--dim);margin-top:6px}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(106px,1fr));gap:8px;margin:14px 0 4px}
+.stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;min-width:0}
+.stat b{display:block;font-size:17px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.stat span{font-size:11.5px;color:var(--dim)}
+.sub2{font-size:13px;color:var(--dim);margin:10px 0 0}
+
+.tbl{width:100%;border-collapse:collapse;font-size:14.5px}
+.tbl th{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--dim);font-weight:600;text-align:left;padding:0 6px 6px}
+.tbl td{border-top:1px solid var(--line);padding:8px 6px;vertical-align:top}
+.tbl td.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.tbl td.nw,.tbl th.nw{white-space:nowrap}
+.tbl td.note,th.note{white-space:normal;font-size:12.5px;color:var(--dim);line-height:1.35}
+.tbl tr.total td{border-top:2px solid var(--line);font-weight:700}
+.tbl.plan td.t{white-space:nowrap;font-variant-numeric:tabular-nums;width:76px;color:var(--accent)}
+.tbl.plan td.d{width:104px;text-align:right;white-space:nowrap;color:var(--dim);font-size:13px}
+.tbl.plan td b{display:block}
+.day{display:block;font-size:10.5px;color:var(--warn);letter-spacing:.04em}
+#recipeTables,#waterBox,#bakeBox,#plan{overflow-x:auto}
+.wrapTable{margin:0 0 6px}
+.box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px;font-size:14px}
+.box b{color:var(--accent)}
+.legend{font-size:12.5px;color:var(--dim);margin:8px 0 0}
+
+footer.foot{margin-top:18px;padding-top:14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--dim);line-height:1.55}
+footer.foot p{margin:0 0 6px}
+footer.foot b{color:#cfc3ba;font-weight:600}
+
+/* ---------- липкая строка ---------- */
+#stickyBar{
+  position:fixed;left:0;right:0;bottom:0;z-index:40;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:10px 14px calc(10px + env(safe-area-inset-bottom));
+  background:rgba(30,26,24,.94);border-top:1px solid var(--line);
+  backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+  font-size:15px;
+}
+#sbVal{font-weight:700;font-variant-numeric:tabular-nums}
+#sbJump{font:inherit;font-size:13.5px;color:var(--bg);background:var(--accent);border:0;border-radius:9px;padding:8px 14px;cursor:pointer}
+
+#diag{position:fixed;left:8px;bottom:74px;z-index:50;max-width:calc(100% - 16px);font:11px/1.4 ui-monospace,Consolas,monospace;
+  color:#ffd7a8;background:rgba(0,0,0,.82);border:1px solid var(--line);border-radius:8px;padding:6px 8px;white-space:pre-wrap}
+
+/* ---------- телефоны ---------- */
+@media (max-width:880px){
+  body{padding:12px 10px calc(96px + env(safe-area-inset-bottom))}
+  .grid{grid-template-columns:minmax(0,1fr)}
+  .big{font-size:29px}
+  h1{font-size:18px}
+  .logo{width:44px;height:44px}
+  .sub{font-size:12.5px}
+  input[type=number],input[type=time]{font-size:16px}
+  .stats{grid-template-columns:repeat(auto-fit,minmax(96px,1fr))}
+  .stat{padding:7px 9px}
+  .stat b{font-size:16px}
+  .stat span{font-size:11px}
+}
+html.tg .grid{grid-template-columns:1fr}
+html.tg body{padding-top:8px}
+
+/* ---------- печать ---------- */
+/* На бумаге нужен рецепт, а не форма ввода: панель полей и кнопки скрыты. */
+@media print{
+  :root{--bg:#fff;--panel:#fff;--panel2:#f6f3f0;--line:#c9c2bc;--ink:#111;--dim:#4a4a4a;--accent:#8a4b00}
+  body{background:#fff;color:#111;padding:0;font-size:11.5pt}
+  .presets,.actions,#stickyBar,#diag,.hint,section.input,footer.foot{display:none!important}
+  .grid{display:block}
+  .panel{border:0;padding:0;margin-bottom:12pt}
+  .big{font-size:26pt}
+  .stat{border-color:#c9c2bc;background:#f6f3f0}
+  .tbl td.note,.tbl th.note{color:#333}
+  .alerts p{background:#f6f3f0;border-color:#c9c2bc;color:#111}
+  .alerts p.ok{background:#f1f7ec;border-color:#a9c894;color:#24470f}
+  .alerts p.warn,.alerts p.err{background:#fdf1ec;border-color:#dda48f;color:#6d1f06}
+  .box{background:#f6f3f0;border-color:#c9c2bc;color:#111}
+  .tbl.plan td.t{color:#8a4b00}
+  a{color:#111;text-decoration:none}
+  /* таблицы не рвём посередине строки, а блоки — между заголовком и содержимым */
+  .tbl tr,.box,.alerts p{page-break-inside:avoid}
+  h2{page-break-after:avoid}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="24" cy="27" r="17" fill="#e8a33d"/>
+          <circle cx="24" cy="27" r="17" stroke="#b9762a" stroke-width="2"/>
+          <circle cx="24" cy="27" r="13.5" fill="#f2c274"/>
+          <circle cx="17" cy="21.5" r="2.6" fill="#c0392b"/>
+          <circle cx="30" cy="19.5" r="2.3" fill="#c0392b"/>
+          <circle cx="24" cy="30" r="2.4" fill="#c0392b"/>
+          <circle cx="33" cy="31" r="2" fill="#c0392b"/>
+          <circle cx="15.5" cy="30" r="2" fill="#c0392b"/>
+          <circle cx="26" cy="15.5" r="1.5" fill="#8fbf6a"/>
+          <circle cx="35" cy="25" r="1.4" fill="#8fbf6a"/>
+          <circle cx="13" cy="24.5" r="1.3" fill="#8fbf6a"/>
+        </svg>
+      </div>
+      <div>
+        <h1>Неаполитанская пицца</h1>
+        <p class="sub">Калькулятор теста: граммы на нужное число пицц, дрожжи под ваш график брожения, температура воды и план до выпечки.</p>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="copyBtn" class="btn" type="button">Скопировать рецепт</button>
+      <button id="printBtn" class="btn" type="button">Печать / PDF</button>
+    </div>
+  </header>
+
+  <div id="presets" class="presets"></div>
+
+  <main class="grid">
+
+    <!-- ================= ВВОД ================= -->
+    <section class="panel input">
+      <h2>Сколько теста</h2>
+      <div class="row wide">
+        <label for="mode">Считать</label>
+        <select id="mode">
+          <option value="pizzas">по числу пицц</option>
+          <option value="dough">по весу теста</option>
+          <option value="flour">по весу муки</option>
+        </select>
+      </div>
+      <div id="modeInputs"></div>
+
+      <h2>Состав</h2>
+      <div class="row">
+        <label for="hydration">Гидратация, %<span class="hint">неаполитанская норма 58–63 %</span></label>
+        <input id="hydration" type="number" inputmode="decimal" value="62" min="40" max="95" step="0.5">
+      </div>
+      <div class="row">
+        <label for="salt">Соль, % от муки<span class="hint">норма 2,5–3 %</span></label>
+        <input id="salt" type="number" inputmode="decimal" value="2.8" min="0" max="6" step="0.1">
+      </div>
+
+      <h2>Брожение</h2>
+      <div class="row wide">
+        <label for="ferment">Режим</label>
+        <select id="ferment">
+          <option value="rt">при комнатной</option>
+          <option value="cold">холодильник</option>
+        </select>
+      </div>
+      <div id="fermentInputs"></div>
+
+      <div class="row">
+        <label for="autoYeast">Дрожжи подобрать<span class="hint">под ваш график брожения</span></label>
+        <input id="autoYeast" type="checkbox" checked>
+      </div>
+      <div class="row wide">
+        <label for="yeastType">Тип дрожжей</label>
+        <select id="yeastType">
+          <option value="fresh">свежие</option>
+          <option value="instant">сухие быстродейств.</option>
+          <option value="active">сухие активные</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="yeastPct">Дрожжи, % от муки<span class="hint" id="yeastHint">—</span></label>
+        <input id="yeastPct" type="number" inputmode="decimal" value="0.15" min="0" max="3" step="0.01">
+      </div>
+
+      <h2>Температура и время</h2>
+      <div class="row">
+        <label for="ddt">Температура теста, °C<span class="hint">к чему стремимся при замесе</span></label>
+        <input id="ddt" type="number" inputmode="decimal" value="23" min="10" max="30" step="0.5">
+      </div>
+      <div class="row">
+        <label for="flourTemp">Мука, °C</label>
+        <input id="flourTemp" type="number" inputmode="decimal" value="21" min="0" max="40" step="0.5">
+      </div>
+      <div class="row">
+        <label for="friction">Трение замеса, °C<span class="hint">руками ≈ 3, планетарный ≈ 5, спиральный ≈ 7</span></label>
+        <input id="friction" type="number" inputmode="decimal" value="3" min="0" max="15" step="0.5">
+      </div>
+      <div class="row">
+        <label for="start">Начало замеса</label>
+        <input id="start" type="time" value="09:00">
+      </div>
+    </section>
+
+    <!-- ================= ВЫВОД ================= -->
+    <section class="panel">
+      <div id="alerts" class="alerts"></div>
+      <div id="bigNumber" class="big"></div>
+      <div id="stats" class="stats"></div>
+
+      <h2>Тесто</h2>
+      <div id="recipeTables"></div>
+
+      <h2>Вода и дрожжи</h2>
+      <div id="waterBox"></div>
+
+      <h2>Выпечка</h2>
+      <div id="bakeBox"></div>
+
+      <h2>План на день</h2>
+      <div id="plan"></div>
+
+      <footer class="foot">
+        <p><b>Пекарские проценты.</b> Мука всегда 100 %, вода, соль и дрожжи считаются от её веса.
+          Такой рецепт масштабируется на любое количество пицц без пересчёта.</p>
+        <p><b>Дрожжи из графика.</b> Нагрузка = часы × 2<sup>(T−20)/10</sup> — при +10 °C дрожжи работают вдвое
+          быстрее. 24 ч при 20 °C ≈ 0,15 % свежих; 48 ч в холодильнике при 5 °C ≈ 0,19 %.
+          Отсюда и правило: чем холоднее и дольше, тем меньше дрожжей.</p>
+        <p><b>Целые граммы.</b> Мука, вода и соль округляются до грамма так, чтобы сумма сходилась с весом
+          теста. Дрожжей часто меньше грамма — их показываем с точностью 0,1 г.</p>
+        <p><b>Вес шара → диаметр.</b> 250 г ≈ ⌀ 30 см, 280 г ≈ ⌀ 32 см, 220 г ≈ ⌀ 28 см.
+          Толщина борта (корнишоне) 1,5–2 см.</p>
+        <p>Данные хранятся только в этом браузере и никуда не отправляются.</p>
+      </footer>
+    </section>
+
+  </main>
+</div>
+
+<div id="stickyBar">
+  <span id="sbVal">—</span>
+  <button id="sbJump" type="button">К рецепту</button>
+</div>
+<div id="diag" hidden></div>
+
+<noscript><p style="padding:16px">Для расчёта нужен JavaScript.</p></noscript>
+
+<script>
+/* ==================== РАСЧЁТНОЕ ЯДРО ==================== */
+/*CALC-START*/
+function num(v, dflt){
+  if (v === null || v === undefined || v === '') return dflt === undefined ? 0 : dflt;
+  var x = parseFloat(String(v).replace(',', '.'));
+  if (!isFinite(x)) return dflt === undefined ? 0 : dflt;
+  return x;
+}
+
+/* Активность дрожжей относительно 20 °C: каждые +10 °C — вдвое быстрее. */
+function tempFactor(t){
+  t = num(t, 20);
+  if (t < 0) t = 0;
+  if (t > 32) t = 32;
+  return Math.pow(2, (t - 20) / 10);
+}
+
+/* Сколько часов тесто лежит целиком до формовки шаров. */
+function bulkHours(s){
+  if (s.ferment === 'cold') return 1;
+  var h = num(s.rtHours, 0);
+  return Math.max(1, Math.min(3, Math.round(h * 0.1)));
+}
+
+/* Нагрузка брожения в «часо-эквивалентах при 20 °C». */
+function fermentLoad(s){
+  var b = bulkHours(s);
+  if (s.ferment === 'cold'){
+    return num(s.coldHours, 0) * tempFactor(num(s.fridgeTemp, 5)) +
+           (num(s.warmHours, 0) + b) * tempFactor(num(s.roomTemp, 20));
+  }
+  return num(s.rtHours, 0) * tempFactor(num(s.roomTemp, 20));
+}
+
+/* Рекомендованный процент свежих дрожжей под график. */
+function recommendedYeastPct(load){
+  if (!(load > 0)) return 0.15;
+  var v = 3.6 / load;                    // 24 ч при 20 °C ≈ 0,15 %
+  if (v < 0.02) v = 0.02;
+  if (v > 1.2) v = 1.2;
+  return v;
+}
+
+function waterTemp(ddt, flourTemp, roomTemp, friction){
+  return 3 * num(ddt) - num(flourTemp) - num(roomTemp) - num(friction);
+}
+
+function yeastFactor(type){           // во сколько раз сухих нужно меньше
+  if (type === 'instant') return 3;   // быстродействующие: 1/3 от свежих
+  if (type === 'active') return 2.5;  // активные: 1/2,5
+  return 1;
+}
+
+function yeastName(type){
+  if (type === 'instant') return 'Дрожжи сухие быстродействующие';
+  if (type === 'active') return 'Дрожжи сухие активные';
+  return 'Дрожжи свежие';
+}
+function yeastShort(type){
+  if (type === 'instant') return 'сухие быстродействующие';
+  if (type === 'active') return 'сухие активные';
+  return 'свежие';
+}
+
+function ballDiameter(grams){         // ⌀ пиццы в см по весу шара
+  var g = num(grams, 250);
+  if (!(g > 0)) return 0;
+  return Math.round(30 * Math.sqrt(g / 250));
+}
+
+function computeRecipe(s){
+  if (!s) return null;
+
+  var hyd = num(s.hydration, 0);
+  var saltPct = num(s.salt, 0);
+  if (!(hyd > 0)) return null;
+  if (hyd > 120) hyd = 120;
+  if (!(saltPct >= 0)) saltPct = 0;
+
+  var load = fermentLoad(s);
+  var recPct = recommendedYeastPct(load);
+  var auto = !!s.autoYeast;
+  var yeastPct = auto ? recPct : num(s.yeastPct, 0);
+  if (!(yeastPct >= 0)) yeastPct = 0;
+  if (yeastPct > 3) yeastPct = 3;
+
+  var balls = 0, ballW = 0, target = null;
+  var factor = 1 + hyd / 100 + saltPct / 100 + yeastPct / 100;
+
+  if (s.mode === 'pizzas'){
+    balls = Math.round(num(s.pizzas, 0));
+    ballW = Math.round(num(s.ballWeight, 0));
+    if (!(balls > 0) || !(ballW > 0)) return null;
+    target = balls * ballW;
+  } else if (s.mode === 'dough'){
+    target = Math.round(num(s.doughWeight, 0));
+    if (!(target > 0)) return null;
+    ballW = Math.round(num(s.ballWeight, 250));
+    if (!(ballW > 0)) ballW = 250;
+    balls = Math.max(1, Math.round(target / ballW));
+  } else if (s.mode === 'flour'){
+    var fw = Math.round(num(s.flourWeight, 0));
+    if (!(fw > 0)) return null;
+    ballW = Math.round(num(s.ballWeight, 250));
+    if (!(ballW > 0)) ballW = 250;
+  } else {
+    return null;
+  }
+
+  var flour, water, salt, yeast, totalDough;
+
+  if (target === null){
+    flour = Math.round(num(s.flourWeight, 0));
+    water = flour * hyd / 100;
+    salt = flour * saltPct / 100;
+    yeast = flour * yeastPct / 100;
+    totalDough = flour + water + salt + yeast;
+    balls = Math.max(1, Math.round(totalDough / ballW));
+    ballW = Math.round(totalDough / balls);
+  } else {
+    flour = target / factor;
+    water = flour * hyd / 100;
+    salt = flour * saltPct / 100;
+    yeast = flour * yeastPct / 100;
+    totalDough = flour + water + salt + yeast;
+  }
+
+  var wt = waterTemp(s.ddt, s.flourTemp, s.roomTemp, s.friction);
+  var bulk = bulkHours(s);
+  var rtH = num(s.rtHours, 0), coldH = num(s.coldHours, 0), warmH = num(s.warmHours, 0);
+
+  return {
+    mode: s.mode,
+    ferment: s.ferment,
+    flour: flour,
+    water: water,
+    salt: salt,
+    yeast: yeast,
+    totalDough: totalDough,
+    target: target,
+    balls: balls,
+    ballWeight: ballW,
+    ballDiameter: ballDiameter(ballW),
+
+    hydration: hyd,
+    saltPct: saltPct,
+    yeastPct: yeastPct,
+    yeastType: s.yeastType || 'fresh',
+    yeastLabel: yeastName(s.yeastType),
+    yeastShortLabel: yeastShort(s.yeastType),
+    yeastFactor: yeastFactor(s.yeastType),
+
+    autoYeast: auto,
+    load: load,
+    recYeastPct: recPct,
+
+    waterTemp: wt,
+    ddt: num(s.ddt, 23),
+    flourTemp: num(s.flourTemp, 21),
+    friction: num(s.friction, 3),
+    roomTemp: num(s.roomTemp, 20),
+    fridgeTemp: num(s.fridgeTemp, 5),
+    bulkHours: bulk,
+    rtHours: rtH,
+    coldHours: coldH,
+    warmHours: warmH,
+    start: s.start || '09:00'
+  };
+}
+
+function round1(x){
+  if (!isFinite(x)) return 0;
+  return Math.round(x * 10) / 10;
+}
+
+/* Меньше грамма — показываем как 1 г (кроме дрожжей). */
+function rnd(x){
+  if (!isFinite(x)) return 0;
+  if (x > 0 && x < 1) return 1;
+  return Math.round(x);
+}
+
+/* Приводит рецепт к целым граммам; дрожжи — до 0,1 г. */
+function roundRecipe(r, target){
+  if (!r) return null;
+
+  var hyd = r.flour > 0 ? r.water / r.flour : 0;
+  var sp = r.flour > 0 ? r.salt / r.flour : 0;
+  var yp = r.flour > 0 ? r.yeast / r.flour : 0;
+  var f0 = Math.max(1, Math.round(r.flour));
+
+  function build(f){
+    var water = rnd(f * hyd);
+    var salt = rnd(f * sp);
+    var yeast = round1(f * yp);
+    if (yeast < 0.05) yeast = 0;
+    return { flour: f, water: water, salt: salt, yeast: yeast, totalDough: f + water + salt + yeast };
+  }
+
+  var best = null, bestD = Infinity;
+  var span = target ? 8 : 4;
+  for (var d = -span; d <= span; d++){
+    var cand = build(Math.max(1, f0 + d));
+    var dist = target
+      ? Math.abs(cand.totalDough - target)
+      : Math.abs(cand.flour - r.flour) * 100 + Math.abs(cand.totalDough - r.totalDough);
+    if (dist < bestD - 1e-9){ bestD = dist; best = cand; }
+  }
+
+  best.mode = r.mode;
+  best.ferment = r.ferment;
+  best.target = r.target;
+  best.balls = r.balls;
+  best.ballWeight = r.ballWeight;
+  best.ballDiameter = r.ballDiameter;
+  best.hydration = r.hydration;
+  best.saltPct = r.saltPct;
+  best.yeastPct = r.yeastPct;
+  best.yeastType = r.yeastType;
+  best.yeastLabel = r.yeastLabel;
+  best.yeastShortLabel = r.yeastShortLabel;
+  best.yeastFactor = r.yeastFactor;
+  best.autoYeast = r.autoYeast;
+  best.load = r.load;
+  best.recYeastPct = r.recYeastPct;
+  best.waterTemp = r.waterTemp;
+  best.ddt = r.ddt;
+  best.flourTemp = r.flourTemp;
+  best.friction = r.friction;
+  best.roomTemp = r.roomTemp;
+  best.fridgeTemp = r.fridgeTemp;
+  best.bulkHours = r.bulkHours;
+  best.rtHours = r.rtHours;
+  best.coldHours = r.coldHours;
+  best.warmHours = r.warmHours;
+  best.start = r.start;
+
+  best.pWater = best.flour > 0 ? best.water / best.flour * 100 : 0;
+  best.pSalt = best.flour > 0 ? best.salt / best.flour * 100 : 0;
+  best.pYeast = best.flour > 0 ? best.yeast / best.flour * 100 : 0;
+  best.targetDelta = target ? best.totalDough - target : 0;
+  best.bumped = function(){
+    return best.flour < r.flour - 1.5 || best.water < r.water - 1.5;
+  }();
+  return best;
+}
+
+/* Пошаговый план: возвращает минуты от старта и время выпечки. */
+function buildPlan(s, r){
+  if (!s || !r) return null;
+
+  var steps = [];
+  var t = 0;
+  var n = Math.max(1, r.balls);
+  var bw = Math.round(r.totalDough / n);
+  var bulk = bulkHours(s);
+  var roomT = num(s.roomTemp, 20);
+
+  steps.push({
+    at: 0, min: 25, title: 'Замес',
+    text: 'В воде растворите соль, всыпьте муку и дрожжи, замесите 10–12 минут до гладкости. Накройте.'
+  });
+  t = 25;
+
+  steps.push({
+    at: t, min: bulk * 60, title: 'Пунтата — общая ферментация',
+    text: 'Тесто лежит целиком под плёнкой при ' + roomT + ' °C. Оно должно стать чуть мягче и глаже.'
+  });
+  t += bulk * 60;
+
+  steps.push({
+    at: t, min: 20, title: 'Стакльо — разделить на ' + n + ' шаров',
+    text: 'Разделите тесто на ' + n + ' кусков по ~' + bw + ' г, каждый подкатайте в шар (пирло), ' +
+          'уложите швом вниз на подпылённый противень с зазором 5 см.'
+  });
+  t += 20;
+
+  if (s.ferment === 'cold'){
+    var ch = num(s.coldHours, 0);
+    var wh = num(s.warmHours, 0);
+    steps.push({
+      at: t, min: ch * 60, title: 'В холодильник',
+      text: 'Шары — в холодильник при ' + num(s.fridgeTemp, 5) + ' °C. Закройте противень плёнкой, ' +
+            'но не герметично: тесту нужен воздух.'
+    });
+    t += ch * 60;
+    steps.push({
+      at: t, min: wh * 60, title: 'Достать и дать согреться',
+      text: 'Снимите плёнку на 20 минут, потом накройте полотенцем. Шары должны стать мягкими ' +
+            'и слегка расползтись — иначе тесто порвётся на борту.'
+    });
+    t += wh * 60;
+  } else {
+    var app = Math.max(1, num(s.rtHours, 0) - bulk) * 60;
+    steps.push({
+      at: t, min: app, title: 'Аппрето — расстойка шаров',
+      text: 'Шары растут швом вниз при ' + roomT + ' °C. К концу они увеличиваются примерно вдвое ' +
+            'и при лёгком нажатии пальцем медленно возвращаются обратно.'
+    });
+    t += app;
+  }
+
+  var bakeAt = t;
+  steps.push({
+    at: bakeAt, min: Math.max(12, n * 3), title: 'Выпечка',
+    text: 'По одной пицце: растянуть руками от центра, соус и моцарелла — и сразу в печь. ' +
+          'Дровяная: 430–485 °C, 60–90 с. Духовка: камень на максимуме, 4–6 мин.'
+  });
+  t += Math.max(12, n * 3);
+
+  return {
+    steps: steps,
+    totalMinutes: t,
+    bakeAt: bakeAt,
+    preheatAt: Math.max(0, bakeAt - 50),
+    balls: n,
+    ballWeight: bw
+  };
+}
+/*CALC-END*/
+
+/* ==================== ФОРМАТИРОВАНИЕ ==================== */
+function pad2(n){ return (n < 10 ? '0' : '') + n; }
+
+function g(n){
+  var v = Math.round(num(n, 0));
+  if (!isFinite(v)) return '—';
+  return v.toLocaleString('ru-RU');
+}
+
+/* Дрожжи: до 10 г — с десятой долей, дальше — целые */
+function gy(n){
+  var v = num(n, 0);
+  if (!isFinite(v)) return '—';
+  if (v < 10) return (Math.round(v * 10) / 10).toFixed(1).replace('.', ',') + ' г';
+  return g(v) + ' г';
+}
+
+function pct(n){
+  var v = num(n, 0);
+  return (Math.round(v * 10) / 10).toFixed(1).replace('.', ',') + ' %';
+}
+
+/* дрожжей бывает 0,15 % — для таких величин нужен второй знак */
+function pct2(n){
+  var v = num(n, 0);
+  if (!isFinite(v)) return '—';
+  if (v < 1) return (Math.round(v * 100) / 100).toFixed(2).replace('.', ',') + ' %';
+  return pct(v);
+}
+
+/* 1 пицца, 2 пиццы, 6 пицц */
+function plural(n, forms){
+  var a = Math.abs(Math.round(num(n, 0))) % 100;
+  var b = a % 10;
+  if (a > 10 && a < 20) return forms[2];
+  if (b === 1) return forms[0];
+  if (b > 1 && b < 5) return forms[1];
+  return forms[2];
+}
+
+function clockParts(base, addMin){
+  var parts = String(base || '09:00').split(':');
+  var h = parseInt(parts[0], 10);
+  var m = parseInt(parts[1], 10);
+  if (!isFinite(h)) h = 9;
+  if (!isFinite(m)) m = 0;
+  var t = h * 60 + m + Math.round(num(addMin, 0));
+  var day = Math.floor(t / 1440);
+  t = ((t % 1440) + 1440) % 1440;
+  return { hhmm: pad2(Math.floor(t / 60)) + ':' + pad2(t % 60), day: day };
+}
+function clock(base, addMin){
+  var c = clockParts(base, addMin);
+  return c.hhmm;
+}
+
+function dur(min){
+  min = Math.round(num(min, 0));
+  if (min < 60) return min + ' мин';
+  var h = Math.floor(min / 60), m = min % 60;
+  if (m === 0) return h + ' ч';
+  return h + ' ч ' + m + ' мин';
+}
+
+/* ==================== СОСТОЯНИЕ ==================== */
+var KEY = 'pizza-calc-v1';
+
+var ids = ['mode', 'pizzas', 'ballWeight', 'doughWeight', 'flourWeight', 'hydration', 'salt',
+  'ferment', 'rtHours', 'coldHours', 'warmHours', 'roomTemp', 'fridgeTemp',
+  'autoYeast', 'yeastType', 'yeastPct', 'ddt', 'flourTemp', 'friction', 'start'];
+
+var DEFAULTS = {
+  mode: 'pizzas',
+  pizzas: 6, ballWeight: 250, doughWeight: 1500, flourWeight: 1000,
+  hydration: 62, salt: 2.8,
+  ferment: 'rt', rtHours: 24, coldHours: 48, warmHours: 4,
+  roomTemp: 20, fridgeTemp: 5,
+  autoYeast: true, yeastType: 'fresh', yeastPct: 0.15,
+  ddt: 23, flourTemp: 21, friction: 3,
+  start: '09:00'
+};
+
+var PRESETS = [
+  { name: 'Классика 24 ч', v: { ferment: 'rt', rtHours: 24, roomTemp: 20, hydration: 62, salt: 2.8, autoYeast: true, yeastType: 'fresh' } },
+  { name: 'Быстрая 8 ч', v: { ferment: 'rt', rtHours: 8, roomTemp: 21, hydration: 62, salt: 2.8, autoYeast: true, yeastType: 'fresh' } },
+  { name: 'Холодильник 48 ч', v: { ferment: 'cold', coldHours: 48, warmHours: 4, fridgeTemp: 5, roomTemp: 20, hydration: 62, salt: 2.8, autoYeast: true, yeastType: 'fresh' } },
+  { name: 'Холодильник 72 ч', v: { ferment: 'cold', coldHours: 72, warmHours: 5, fridgeTemp: 4, roomTemp: 20, hydration: 63, salt: 2.8, autoYeast: true, yeastType: 'fresh' } },
+  { name: 'Сухие дрожжи', v: { yeastType: 'instant', autoYeast: true, ferment: 'rt', rtHours: 24 } }
+];
+
+function el(id){ return document.getElementById(id); }
+function fld(id){ var e = el(id); return e ? e.value : ''; }
+
+function readState(){
+  var s = {
+    mode: fld('mode') || DEFAULTS.mode,
+    ferment: fld('ferment') || DEFAULTS.ferment,
+    hydration: num(fld('hydration'), DEFAULTS.hydration),
+    salt: num(fld('salt'), DEFAULTS.salt),
+    autoYeast: el('autoYeast') ? !!el('autoYeast').checked : true,
+    yeastType: fld('yeastType') || DEFAULTS.yeastType,
+    yeastPct: num(fld('yeastPct'), DEFAULTS.yeastPct),
+    ddt: num(fld('ddt'), DEFAULTS.ddt),
+    flourTemp: num(fld('flourTemp'), DEFAULTS.flourTemp),
+    friction: num(fld('friction'), DEFAULTS.friction),
+    start: fld('start') || DEFAULTS.start
+  };
+  ['pizzas', 'ballWeight', 'doughWeight', 'flourWeight',
+   'rtHours', 'roomTemp', 'coldHours', 'fridgeTemp', 'warmHours'].forEach(function(k){
+    var e = el(k);
+    s[k] = e ? num(e.value, DEFAULTS[k]) : DEFAULTS[k];
+  });
+  return s;
+}
+
+function save(s){
+  try { localStorage.setItem(KEY, JSON.stringify(s)); } catch (e) {}
+}
+function loadSaved(){
+  try {
+    var raw = localStorage.getItem(KEY);
+    if (!raw) return null;
+    var o = JSON.parse(raw);
+    return (o && typeof o === 'object') ? o : null;
+  } catch (e) { return null; }
+}
+function applyState(s){
+  if (!s) return;
+  ids.forEach(function(id){
+    var e = el(id);
+    if (!e || !(id in s)) return;
+    if (e.type === 'checkbox') e.checked = !!s[id];
+    else e.value = s[id];
+  });
+}
+
+/* ==================== ВВОД: ДИНАМИЧЕСКИЕ ПОЛЯ ==================== */
+function rowNum(id, label, hint, v, min, max, step){
+  return '<div class="row"><label for="' + id + '">' + label +
+    (hint ? '<span class="hint">' + hint + '</span>' : '') + '</label>' +
+    '<input id="' + id + '" type="number" inputmode="decimal" value="' + v + '" min="' + min +
+    '" max="' + max + '" step="' + (step || 1) + '"></div>';
+}
+
+function renderModeInputs(saved){
+  var mode = fld('mode') || DEFAULTS.mode;
+  var box = el('modeInputs');
+  var html = '';
+  if (mode === 'pizzas'){
+    html += rowNum('pizzas', 'Пицц, штук', '', num(saved && saved.pizzas, DEFAULTS.pizzas), 1, 40, 1);
+    html += rowNum('ballWeight', 'Теста на пиццу, г', '⌀ 30 см ≈ 250 г', num(saved && saved.ballWeight, DEFAULTS.ballWeight), 120, 600, 10);
+  } else if (mode === 'dough'){
+    html += rowNum('doughWeight', 'Общий вес теста, г', '', num(saved && saved.doughWeight, DEFAULTS.doughWeight), 100, 20000, 50);
+    html += rowNum('ballWeight', 'Теста на пиццу, г', 'делим на шары такого веса', num(saved && saved.ballWeight, DEFAULTS.ballWeight), 120, 600, 10);
+  } else {
+    html += rowNum('flourWeight', 'Муки, г', '', num(saved && saved.flourWeight, DEFAULTS.flourWeight), 100, 10000, 50);
+    html += rowNum('ballWeight', 'Теста на пиццу, г', 'для оценки числа шаров', num(saved && saved.ballWeight, DEFAULTS.ballWeight), 120, 600, 10);
+  }
+  box.innerHTML = html;
+}
+
+function renderFermentInputs(saved){
+  var mode = fld('ferment') || DEFAULTS.ferment;
+  var box = el('fermentInputs');
+  var html = '';
+  if (mode === 'cold'){
+    html += rowNum('coldHours', 'В холодильнике, ч', '48–72 ч — обычная практика', num(saved && saved.coldHours, DEFAULTS.coldHours), 4, 120, 1);
+    html += rowNum('fridgeTemp', 'Холодильник, °C', 'обычно 4–6', num(saved && saved.fridgeTemp, DEFAULTS.fridgeTemp), 0, 12, 0.5);
+    html += rowNum('warmHours', 'Согревание, ч', '2–6 ч при комнатной', num(saved && saved.warmHours, DEFAULTS.warmHours), 0.5, 12, 0.5);
+    html += rowNum('roomTemp', 'В комнате, °C', '', num(saved && saved.roomTemp, DEFAULTS.roomTemp), 12, 32, 0.5);
+  } else {
+    html += rowNum('rtHours', 'Брожение, ч', '24 ч — классика', num(saved && saved.rtHours, DEFAULTS.rtHours), 3, 48, 1);
+    html += rowNum('roomTemp', 'В комнате, °C', 'неаполитанская классика 18–20', num(saved && saved.roomTemp, DEFAULTS.roomTemp), 12, 32, 0.5);
+  }
+  box.innerHTML = html;
+}
+
+function renderPresets(activeIndex){
+  var box = el('presets');
+  box.innerHTML = PRESETS.map(function(p, i){
+    return '<button type="button" data-i="' + i + '" aria-pressed="' +
+      (i === activeIndex ? 'true' : 'false') + '">' + p.name + '</button>';
+  }).join('');
+}
+
+function applyPreset(i){
+  var p = PRESETS[i];
+  if (!p) return;
+  var s = readState();
+  Object.keys(p.v).forEach(function(k){ s[k] = p.v[k]; });
+  applyState(s);
+  /* пресет может сменить режим брожения — пересобираем поля */
+  renderFermentInputs(s);
+  applyState(s);
+  save(readState());
+  renderPresets(i);
+  render();
+}
+
+/* ==================== ВЫВОД ==================== */
+function alertsHtml(s, r, o, plan){
+  var out = [];
+  if (!r){
+    out.push('<p class="err">Проверьте ввод: вес и количество должны быть больше нуля.</p>');
+    return out.join('');
+  }
+
+  var totalDough = Math.round(o.totalDough);
+  out.push('<p class="ok">' + o.balls + ' × ' + g(o.ballWeight) + ' г = ' +
+    g(totalDough) + ' г теста. Все веса — целые граммы, дрожжи — до 0,1\u00A0г.</p>');
+
+  if (r.hydration < 55){
+    out.push('<p class="warn">Гидратация ' + pct(r.hydration) + ' — ниже неаполитанской нормы (58–63 %). ' +
+      'Тесто будет плотным, борт поднимется слабее.</p>');
+  } else if (r.hydration > 68){
+    out.push('<p class="warn">Гидратация ' + pct(r.hydration) + ' — выше 65 %. Мука 00 такое держит с трудом: ' +
+      'растягивайте на подпылённой поверхности и не добавляйте муки в тесто.</p>');
+  }
+  if (r.saltPct > 3.2){
+    out.push('<p class="warn">Соли ' + pct(r.saltPct) + ' — много. Дрожжи в такой среде работают медленнее, ' +
+      'норма 2,5–3 %.</p>');
+  }
+  if (r.saltPct > 0 && r.saltPct < 1.5){
+    out.push('<p class="warn">Соли ' + pct(r.saltPct) + ' — меньше обычного, вкус будет плоским.</p>');
+  }
+
+  if (s.ferment === 'rt'){
+    if (r.rtHours < 6){
+      out.push('<p class="warn">Меньше 6 часов при комнатной температуре: тесто не успеет созреть, ' +
+        'будет клейким и без вкуса. Для быстрого варианта держите 8 ч и не снижайте дрожжи.</p>');
+    } else if (r.rtHours > 30){
+      out.push('<p class="warn">Больше 30 часов без холодильника — тесто перекиснет и начнёт рваться. ' +
+        'Для длинного брожения выберите режим «холодильник».</p>');
+    }
+  } else {
+    if (r.coldHours < 12){
+      out.push('<p class="warn">Меньше 12 часов в холодильнике — смысла в холоде почти нет, ' +
+        'проще держать при комнатной.</p>');
+    }
+    if (r.warmHours < 2){
+      out.push('<p class="warn">На согревание меньше 2 часов: холодные шары рвутся при формовке. ' +
+        'Минимум 2–3 ч при 20 °C.</p>');
+    }
+  }
+
+  if (r.load > 70){
+    out.push('<p class="warn">Слишком большая нагрузка брожения (' + Math.round(r.load) + ' ч·экв): ' +
+      'тесто перекиснет. Сократите время или снизьте температуру.</p>');
+  }
+
+  if (!r.autoYeast){
+    var diff = r.recYeastPct > 0 ? (r.yeastPct - r.recYeastPct) / r.recYeastPct : 0;
+    if (Math.abs(diff) > 0.5){
+      out.push('<p class="warn">Дрожжей ' + pct2(r.yeastPct) + ', а под ваш график нужно ≈ ' +
+        pct2(r.recYeastPct) + '. ' + (diff > 0 ? 'Тесто будет готово раньше срока.' : 'Может не успеть подняться.') + '</p>');
+    }
+  }
+
+  if (r.waterTemp < 4 || r.waterTemp > 27){
+    out.push('<p class="warn">Температура воды ' + Math.round(r.waterTemp) + ' °C — ' +
+      (r.waterTemp < 4 ? 'слишком холодная: дрожжи замедлятся, тесто будет дольше подходить.'
+                       : 'слишком тёплая: тесто перегреется и перебродит.') + '</p>');
+  }
+
+  return out.join('');
+}
+
+function renderStats(o, plan){
+  var items = [
+    ['мука', g(o.flour) + ' г'],
+    ['вода', g(o.water) + ' г'],
+    ['соль', g(o.salt) + ' г'],
+    ['дрожжи ' + o.yeastShortLabel, gy(o.yeast)],
+    ['шаров', g(o.balls)],
+    ['⌀ пиццы', '≈ ' + o.ballDiameter + ' см']
+  ];
+  return items.map(function(it){
+    return '<div class="stat"><b>' + it[1] + '</b><span>' + it[0] + '</span></div>';
+  }).join('');
+}
+
+function renderRecipeTables(s, r, o){
+  var h = '';
+
+  h += '<div class="wrapTable"><table class="tbl">';
+  h += '<thead><tr><th>Компонент</th><th class="num">Грамм</th><th class="note">% от муки</th></tr></thead><tbody>';
+  h += '<tr><td>Мука 00</td><td class="num"><b>' + g(o.flour) + '</b></td><td class="note">100 %</td></tr>';
+  h += '<tr><td>Вода</td><td class="num"><b>' + g(o.water) + '</b></td><td class="note">' + pct(o.pWater) + '</td></tr>';
+  h += '<tr><td>Соль</td><td class="num"><b>' + g(o.salt) + '</b></td><td class="note">' + pct(o.pSalt) + '</td></tr>';
+  h += '<tr><td>' + o.yeastLabel + '</td><td class="num"><b>' + gy(o.yeast) + '</b></td><td class="note">' + pct2(o.pYeast) + '</td></tr>';
+  h += '<tr class="total"><td>Итого теста</td><td class="num"><b>' + g(o.totalDough) + '</b></td><td class="note">' +
+       o.balls + ' × ' + g(o.ballWeight) + ' г</td></tr>';
+  h += '</tbody></table></div>';
+
+  var perFlour = o.balls > 0 ? o.flour / o.balls : 0;
+  var perWater = o.balls > 0 ? o.water / o.balls : 0;
+  var perSalt = o.balls > 0 ? o.salt / o.balls : 0;
+  var perYeast = o.balls > 0 ? o.yeast / o.balls : 0;
+  if (o.balls > 1){
+    h += '<p class="sub2">На один шар: мука ≈ ' + (Math.round(perFlour * 10) / 10).toFixed(1).replace('.', ',') +
+      ' г · вода ≈ ' + (Math.round(perWater * 10) / 10).toFixed(1).replace('.', ',') +
+      ' г · соль ≈ ' + (Math.round(perSalt * 10) / 10).toFixed(1).replace('.', ',') +
+      ' г · дрожжи ≈ ' + gy(perYeast).replace(' г', '') + ' г.</p>';
+  }
+
+  /* контроль */
+  var fermentText;
+  if (s.ferment === 'cold'){
+    fermentText = dur(r.coldHours * 60) + ' при ' + r.fridgeTemp + ' °C + ' + dur(r.warmHours * 60) + ' согревания';
+  } else {
+    fermentText = dur(r.rtHours * 60) + ' при ' + r.roomTemp + ' °C';
+  }
+
+  h += '<div class="wrapTable" style="margin-top:14px"><table class="tbl">';
+  h += '<thead><tr><th>Контроль</th><th class="num">Значение</th><th class="note">Норма / пояснение</th></tr></thead><tbody>';
+  h += '<tr><td>Гидратация</td><td class="num"><b>' + pct(o.pWater) + '</b></td><td class="note">58–63 % для неаполитанской</td></tr>';
+  h += '<tr><td>Соль</td><td class="num"><b>' + pct(o.pSalt) + '</b></td><td class="note">2,5–3 % от муки</td></tr>';
+  h += '<tr><td>Дрожжи ' + o.yeastShortLabel + '</td>' +
+       '<td class="num"><b>' + pct2(o.pYeast) + '</b></td><td class="note">' +
+       (o.autoYeast ? 'подобраны под ваш график' : 'заданы вручную') + '</td></tr>';
+  h += '<tr><td>Вес шара</td><td class="num"><b>' + g(o.ballWeight) + ' г</b></td><td class="note">≈ ⌀ ' + o.ballDiameter + ' см</td></tr>';
+  h += '<tr><td>Брожение</td><td class="num"><b>' + fermentText + '</b></td><td class="note">' +
+       'пунтата ' + dur(r.bulkHours * 60) + '</td></tr>';
+  h += '</tbody></table></div>';
+
+  return h;
+}
+
+function renderWaterBox(s, r, o){
+  var h = '';
+  var wt = Math.round(r.waterTemp);
+
+  h += '<div class="box">Температура воды: <b>' + wt + ' °C</b><br>' +
+    '<span class="legend">Цель ' + r.ddt + ' °C × 3 = ' + Math.round(r.ddt * 3) + '; минус мука ' +
+    r.flourTemp + ' °C, воздух ' + r.roomTemp + ' °C и трение ' + r.friction + ' °C.</span></div>';
+
+  var fresh = o.yeast * o.yeastFactor;
+  if (o.yeastType !== 'fresh'){
+    h += '<p class="legend">В пересчёте на свежие это ' + gy(fresh) + ' — пересчёт 1 : ' + o.yeastFactor + '.</p>';
+  }
+
+  h += '<div class="wrapTable" style="margin-top:10px"><table class="tbl">';
+  h += '<thead><tr><th>Дрожжи</th><th class="num">Грамм</th><th class="note">Подсказка</th></tr></thead><tbody>';
+  var conv = o.yeast * o.yeastFactor;
+  h += '<tr><td>Свежие</td><td class="num"><b>' + gy(conv) + '</b></td><td class="note">эталон, 1 г ≈ кубик 1 см³</td></tr>';
+  h += '<tr><td>Сухие быстродействующие</td><td class="num"><b>' + gy(conv / 3) + '</b></td><td class="note">в 3 раза меньше свежих</td></tr>';
+  h += '<tr><td>Сухие активные</td><td class="num"><b>' + gy(conv / 2.5) + '</b></td><td class="note">в 2,5 раза меньше свежих</td></tr>';
+  h += '</tbody></table></div>';
+
+  h += '<p class="legend">Меньше 0,3 г на весах с шагом 1 г не отвесить: щепотка сухих ≈ 0,3–0,4 г. ' +
+    'Для маленьких партий удобнее ювелирные весы или развести дрожжи в воде ложкой и отлить часть.</p>';
+
+  return h;
+}
+
+function renderBakeBox(s, r, o){
+  var h = '';
+  h += '<div class="wrapTable"><table class="tbl">';
+  h += '<thead><tr><th>Печь</th><th class="note">Температура</th><th class="note">Время</th><th class="note">Как</th></tr></thead><tbody>';
+  h += '<tr><td>Дровяная</td><td class="note">под 430–485 °C</td><td class="nw">60–90 с</td>' +
+       '<td class="note">повернуть на 180° через 25–30 с</td></tr>';
+  h += '<tr><td>Домашняя духовка</td><td class="note">максимум 250–300 °C, камень или сталь</td>' +
+       '<td class="nw">4–6 мин</td><td class="note">прогрев 45–60 мин, последние 2 мин — верхний гриль</td></tr>';
+  h += '</tbody></table></div>';
+
+  h += '<div class="box" style="margin-top:10px">На пиццу ⌀ ' + o.ballDiameter + ' см: ' +
+    '<b>соус 60–80 г</b>, <b>моцарелла 80–100 г</b>, базилик и оливковое масло — после печи.<br>' +
+    '<span class="legend">Тесто не раскатывать скалкой: растягивать руками от центра, оставив борт 1,5–2 см. ' +
+    'Собирать на лопатке или пергаменте — на столе пицца прилипнет.</span></div>';
+
+  return h;
+}
+
+function renderPlan(s, r, o, plan){
+  if (!plan) return '';
+  var h = '';
+
+  var pre = clockParts(s.start, plan.preheatAt);
+  var bake = clockParts(s.start, plan.bakeAt);
+
+  h += '<p class="legend" style="margin-top:0">Печь включить в <b>' + pre.hhmm + '</b>' +
+    (pre.day ? ' (+' + pre.day + ' дн.)' : '') + ' — прогрев 45–60 минут. ' +
+    'Первая пицца в ' + bake.hhmm + (bake.day ? ' (+' + bake.day + ' дн.)' : '') + '.</p>';
+
+  h += '<div class="wrapTable"><table class="tbl plan">';
+  h += '<thead><tr><th>Время</th><th>Что делать</th><th class="num">Длит.</th></tr></thead><tbody>';
+
+  plan.steps.forEach(function(st){
+    var c = clockParts(s.start, st.at);
+    h += '<tr><td class="t">' + c.hhmm +
+      (c.day ? '<span class="day">+' + c.day + ' дн.</span>' : '') + '</td>' +
+      '<td><b>' + st.title + '</b><span class="hint">' + st.text + '</span></td>' +
+      '<td class="d">' + dur(st.min) + '</td></tr>';
+  });
+
+  h += '</tbody></table></div>';
+  h += '<p class="legend">Всего от замеса до последней пиццы: <b>' + dur(plan.totalMinutes) + '</b>.</p>';
+  return h;
+}
+
+function render(){
+  var s = readState();
+  var r = computeRecipe(s);
+  var o = r ? roundRecipe(r, r.target) : null;
+  var plan = (r && o) ? buildPlan(s, o) : null;
+
+  /* подсказка и блокировка поля дрожжей */
+  var yp = el('yeastPct');
+  var hint = el('yeastHint');
+  var autoBox = el('autoYeast');
+  if (autoBox && r){
+    autoBox.checked = !!r.autoYeast;
+    if (yp){
+      yp.disabled = !!r.autoYeast;
+      if (r.autoYeast) yp.value = (Math.round(r.recYeastPct * 100) / 100).toFixed(2);
+    }
+    if (hint){
+      hint.textContent = r.autoYeast
+        ? 'подобрано: ' + pct2(r.recYeastPct) + ' на ' + Math.round(r.load) + ' ч·экв'
+        : 'вручную';
+    }
+  }
+
+  el('alerts').innerHTML = alertsHtml(s, r, o, plan);
+
+  if (!r || !o){
+    el('bigNumber').innerHTML = '—';
+    el('stats').innerHTML = '';
+    el('recipeTables').innerHTML = '';
+    el('waterBox').innerHTML = '';
+    el('bakeBox').innerHTML = '';
+    el('plan').innerHTML = '';
+    var sb0 = el('sbVal');
+    if (sb0) sb0.textContent = '—';
+    return;
+  }
+
+  el('bigNumber').innerHTML = g(o.totalDough) + ' г<small>' +
+    o.balls + ' ' + plural(o.balls, ['пицца', 'пиццы', 'пицц']) + ' по ' + g(o.ballWeight) +
+    ' г · дрожжи ' + pct2(o.pYeast) + ' · брожение ' +
+    (s.ferment === 'cold' ? dur(r.coldHours * 60) + ' в холоде' : dur(r.rtHours * 60)) + '</small>';
+
+  el('stats').innerHTML = renderStats(o, plan);
+  el('recipeTables').innerHTML = renderRecipeTables(s, r, o);
+  el('waterBox').innerHTML = renderWaterBox(s, r, o);
+  el('bakeBox').innerHTML = renderBakeBox(s, r, o);
+  el('plan').innerHTML = renderPlan(s, r, o, plan);
+
+  var sb = el('sbVal');
+  if (sb) sb.textContent = g(o.totalDough) + ' г';
+
+  save(s);
+}
+
+/* ==================== ТЕКСТ ДЛЯ КОПИРОВАНИЯ ==================== */
+function copyText(){
+  var s = readState();
+  var r = computeRecipe(s);
+  if (!r) return 'Проверьте ввод: вес и количество должны быть больше нуля.';
+  var o = roundRecipe(r, r.target);
+  var plan = buildPlan(s, o);
+
+  var lines = [];
+  lines.push('НЕАПОЛИТАНСКАЯ ПИЦЦА — тесто');
+  lines.push(o.balls + ' ' + plural(o.balls, ['шар', 'шара', 'шаров']) + ' по ' + g(o.ballWeight) +
+    ' г · всего ≈ ' + g(o.totalDough) + ' г');
+  lines.push('');
+  lines.push('мука 00 — ' + g(o.flour) + ' г');
+  lines.push('вода — ' + g(o.water) + ' г (' + Math.round(r.waterTemp) + ' °C)');
+  lines.push('соль — ' + g(o.salt) + ' г');
+  lines.push('дрожжи ' + o.yeastShortLabel + ' — ' + gy(o.yeast));
+  lines.push('');
+  lines.push('гидратация ' + pct(o.pWater) + ', соль ' + pct(o.pSalt) + ' от муки');
+  if (s.ferment === 'cold'){
+    lines.push('брожение ' + dur(r.coldHours * 60) + ' при ' + r.fridgeTemp + ' °C + ' +
+      dur(r.warmHours * 60) + ' согревания');
+  } else {
+    lines.push('брожение ' + dur(r.rtHours * 60) + ' при ' + r.roomTemp + ' °C');
+  }
+  if (plan){
+    lines.push('начало ' + clock(s.start, 0) + ' · печь в ' + clock(s.start, plan.preheatAt) +
+      ' · первая пицца в ' + clock(s.start, plan.bakeAt));
+  }
+  lines.push('печь: 430–485 °C, 60–90 с (духовка: максимум на камне, 4–6 мин)');
+  return lines.join('\n');
+}
+
+function doCopy(){
+  var text = copyText();
+  var done = function(ok){
+    var b = el('copyBtn');
+    if (!b) return;
+    var old = 'Скопировать рецепт';
+    b.textContent = ok ? 'Скопировано ✓' : 'Не вышло';
+    setTimeout(function(){ b.textContent = old; }, 1600);
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){ done(true); }, function(){ fallbackCopy(text, done); });
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+function fallbackCopy(text, done){
+  try {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-1000px';
+    document.body.appendChild(ta);
+    ta.select();
+    var ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    done(ok);
+  } catch (e) { done(false); }
+}
+
+/* ==================== СЛУЖЕБНОЕ ==================== */
+function fitZoom(){
+  try {
+    var de = document.documentElement;
+    if (de.style.zoom && de.style.zoom !== '1') return;   /* уже подогнано */
+    var vv = (typeof window !== 'undefined') ? window.visualViewport : null;
+    if (!vv) return;
+    var visible = vv.width * 1.05;
+    var docW = de.scrollWidth;
+    if (docW > visible){
+      var z = Math.max(0.75, visible / docW);
+      de.style.zoom = z;
+    }
+  } catch (e) {}
+}
+
+function showDiag(){
+  var d = el('diag');
+  if (!d) return;
+  d.hidden = false;
+  var de = document.documentElement;
+  var vv = window.visualViewport || { width: window.innerWidth, height: window.innerHeight };
+  var over = [];
+  var all = document.querySelectorAll ? document.querySelectorAll('*') : [];
+  for (var i = 0; i < all.length; i++){
+    var e = all[i];
+    if (!e.getBoundingClientRect) continue;
+    var b = e.getBoundingClientRect();
+    if (b.right > vv.width + 2){
+      over.push((e.id ? '#' + e.id : e.tagName.toLowerCase()) + ' → ' + Math.round(b.right));
+      if (over.length > 4) break;
+    }
+  }
+  d.textContent = BUILD + ' · ширина ' + Math.round(vv.width) + ' · документ ' + de.scrollWidth +
+    ' · zoom ' + (de.style.zoom || 1) + '\n' +
+    (over.length ? 'ВЫЛЕЗАЕТ: ' + over.join(', ') : 'всё влезает');
+}
+
+function bind(){
+  var onChange = function(e){
+    var t = (e && e.target) || {};
+    var id = t.id || '';
+    if (id === 'mode'){
+      renderModeInputs(readState());
+      render();
+      return;
+    }
+    if (id === 'ferment'){
+      renderFermentInputs(readState());
+      render();
+      return;
+    }
+    render();
+  };
+
+  document.addEventListener('input', onChange);
+  document.addEventListener('change', onChange);
+
+  var printBtn = el('printBtn');
+  if (printBtn) printBtn.addEventListener('click', function(){ window.print(); });
+
+  var copyBtn = el('copyBtn');
+  if (copyBtn) copyBtn.addEventListener('click', doCopy);
+
+  var presets = el('presets');
+  if (presets) presets.addEventListener('click', function(e){
+    var b = e.target && e.target.closest ? e.target.closest('button[data-i]') : null;
+    if (!b) return;
+    applyPreset(parseInt(b.getAttribute('data-i'), 10));
+  });
+
+  var jump = el('sbJump');
+  if (jump) jump.addEventListener('click', function(){
+    var p = el('recipeTables');
+    if (p && p.scrollIntoView) p.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  });
+
+  if (typeof window !== 'undefined'){
+    window.addEventListener('resize', fitZoom);
+    window.addEventListener('orientationchange', fitZoom);
+  }
+}
+
+/* ==================== СТАРТ ==================== */
+var BUILD = 'v1';
+
+(function(){
+  var saved = loadSaved();
+
+  /* статические поля */
+  if (saved) applyState(saved);
+
+  /* динамические поля по режимам */
+  renderModeInputs(saved);
+  renderFermentInputs(saved);
+  if (saved) applyState(saved);
+
+  renderPresets(-1);
+  bind();
+  render();
+  fitZoom();
+
+  /* Telegram Mini App */
+  var tg = (window.Telegram && window.Telegram.WebApp) || null;
+  if (tg){
+    try {
+      tg.ready();
+      tg.expand();
+      if (tg.platform === 'android' || tg.platform === 'ios' ||
+          (typeof window.innerWidth === 'number' && window.innerWidth < 720)){
+        document.documentElement.className += ' tg';
+      }
+    } catch (e) {}
+  }
+
+  if (typeof location !== 'undefined' && typeof navigator !== 'undefined'){
+    var proto = location.protocol;
+    var host = location.hostname;
+    if ((proto === 'https:' || host === 'localhost' || host === '127.0.0.1') &&
+        'serviceWorker' in navigator){
+      try { navigator.serviceWorker.register('./sw.js'); } catch (e) {}
+    }
+    if (location.search.indexOf('debug') !== -1) showDiag();
+  }
+})();
+</script>
+</body>
+</html>

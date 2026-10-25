@@ -1,0 +1,19 @@
+{
+  "name": "Неаполитанская пицца — калькулятор теста",
+  "short_name": "Пицца",
+  "description": "Тесто для неаполитанской пиццы под нужное число пицц: целые граммы, дрожжи под график брожения, температура воды и пошаговый план до выпечки.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./pizza.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#141110",
+  "theme_color": "#141110",
+  "categories": ["food", "utilities"],
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
